@@ -4,6 +4,8 @@ import 'simplelightbox/dist/simple-lightbox.min.css';
 import SmoothScroll from 'smoothscroll-for-websites';
 
 import imgApi from '../API/img_API';
+import * as userApi from '../API/user_Api';
+import * as renderApi from '../API/render_Api';
 
 const refs = {
   form: document.querySelector('#search-form'),
@@ -31,9 +33,9 @@ async function onSubmitForm(e) {
   e.preventDefault();
 
   try {
-    removeInfo();
-    clearContainer();
-    hideLoadMore();
+    userApi.removeInfo(refs.amountInfo);
+    userApi.clearContainer(refs.cardContainer);
+    userApi.hideLoadMore(refs.loadMore);
 
     if (e.currentTarget.elements.searchQuery.value === '') {
       Notiflix.Notify.warning('Type something in the search box');
@@ -44,7 +46,7 @@ async function onSubmitForm(e) {
 
     cardsApi.resetPage();
 
-    toggleLoader();
+    userApi.toggleLoader(refs.loader);
 
     const cards = await cardsApi.fetchImgs();
     if (cards.totalHits > 0) {
@@ -56,31 +58,31 @@ async function onSubmitForm(e) {
         'Sorry, there are no images matching your search query. Please try again.'
       );
 
-      toggleLoader();
+      userApi.toggleLoader(refs.loader);
       return;
     }
 
     setPageLimit(cards);
 
-    const markup = takeMarkup(cards.hits);
-    renderCards(markup);
+    const markup = renderApi.takeMarkup(cards.hits);
+    renderApi.renderCards(markup, refs.cardContainer);
 
     gallery.refresh();
 
-    showAnim();
+    userApi.showAnim();
 
-    toggleLoader();
+    userApi.toggleLoader(refs.loader);
 
     if (pages >= cardsApi.page) {
-      showLoadMore();
+      userApi.showLoadMore(refs.loadMore);
     }
     console.log(pages);
     console.log(cardsApi.page);
     if (pages < cardsApi.page) {
-      addInfo();
+      userApi.addInfo(refs.amountInfo);
     }
   } catch (error) {
-    toggleLoader();
+    userApi.toggleLoader(refs.loader);
 
     return console.log(error);
   }
@@ -88,161 +90,44 @@ async function onSubmitForm(e) {
 
 async function onLoadMore() {
   try {
-    toggleLoader();
-    hideLoadMore();
+    userApi.toggleLoader(refs.loader);
+    userApi.hideLoadMore(refs.loadMore);
 
     if (pages <= cardsApi.page) {
       Notiflix.Notify.failure(
         "We're sorry, but you've reached the end of search results. :("
       );
 
-      hideLoadMore();
-      toggleLoader();
+      userApi.hideLoadMore(refs.loadMore);
+      userApi.toggleLoader(refs.loader);
       const cards = await cardsApi.fetchImgs();
 
-      const markup = takeMarkup(cards.hits);
-      renderCards(markup);
-      showAnim();
-      addInfo();
+      const markup = renderApi.takeMarkup(cards.hits);
+      renderApi.renderCards(markup, refs.cardContainer);
+      gallery.refresh();
+      userApi.showAnim();
+      userApi.addInfo(refs.amountInfo);
       return;
     }
 
     const cards = await cardsApi.fetchImgs();
 
-    const markup = takeMarkup(cards.hits);
-    renderCards(markup);
+    const markup = renderApi.takeMarkup(cards.hits);
+    renderApi.renderCards(markup, refs.cardContainer);
 
     gallery.refresh();
 
-    showAnim();
+    userApi.showAnim();
 
-    toggleLoader();
+    userApi.toggleLoader(refs.loader);
 
-    showLoadMore();
+    userApi.showLoadMore(refs.loadMore);
   } catch (error) {
-    toggleLoader();
+    userApi.toggleLoader(refs.loader);
     console.log(error);
   }
 }
 
-function takeMarkup(cards) {
-  const markup = cards
-    .map(
-      ({
-        webformatURL,
-        largeImageURL,
-        tags,
-        likes,
-        views,
-        comments,
-        downloads,
-      }) => {
-        return `<a class="gallery-item" href="${largeImageURL}">
-        <img
-          class="gallery__image"
-          src="${webformatURL}"
-          title="${tags}"
-          width="325"
-          height="220"
-          loading="lazy"
-        />
-        <div class="info">
-          <div class="info-item">
-            
-              <b class="info-title">Likes</b>
-              <p class="info-text">${likes}</p>
-            
-          </div>
-          <div class="info-item">
-            
-              <b class="info-title">Views</b>
-              <p class="info-text">${views}</p>
-            
-          </div>
-          <div class="info-item">
-            
-              <b class="info-title">Comments</b>
-              <p class="info-text">${comments}</p>
-            
-          </div>
-          <div class="info-item">
-            
-              <b class="info-title">Downloads</b>
-              <p class="info-text">${downloads}</p>
-            
-          </div>
-        </div>
-      </a>`;
-      }
-    )
-    .join('');
-  return markup;
-}
-
-function renderCards(markup) {
-  refs.cardContainer.insertAdjacentHTML('beforeend', markup);
-}
-
-function clearContainer() {
-  refs.cardContainer.innerHTML = '';
-}
-
 function setPageLimit({ totalHits }) {
   pages = Math.ceil(totalHits / 40);
-}
-
-function toggleLoader() {
-  refs.loader.classList.toggle('is-hidden');
-}
-
-function showLoadMore() {
-  refs.loadMore.classList.remove('is-hidden');
-}
-function hideLoadMore() {
-  refs.loadMore.classList.add('is-hidden');
-}
-
-function showAnim() {
-  const cards = document.querySelectorAll('.gallery-item');
-  cards.forEach(card => {
-    const cardHeight = card.offsetHeight;
-
-    const cardOffset = getElementOffset(card).top;
-
-    const animStart = 4;
-    let animPoint = window.innerHeight - cardHeight / animStart;
-
-    if (
-      window.scrollY > cardOffset - animPoint &&
-      window.scrollY < cardOffset + cardHeight
-    ) {
-      card.classList.add('is-active');
-    } else {
-      card.classList.add('is-active');
-    }
-  });
-}
-
-function getElementOffset(el) {
-  let top = 0;
-  let left = 0;
-  let element = el;
-
-  do {
-    top += element.offsetTop || 0;
-    left += element.offsetLeft || 0;
-    element = element.offsetParent;
-  } while (element);
-
-  return {
-    top,
-    left,
-  };
-}
-function removeInfo() {
-  refs.amountInfo.classList.add('is-hidden');
-}
-
-function addInfo() {
-  refs.amountInfo.classList.remove('is-hidden');
 }
