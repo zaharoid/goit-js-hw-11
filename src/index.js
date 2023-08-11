@@ -76,8 +76,7 @@ async function onSubmitForm(e) {
     if (pages >= cardsApi.page) {
       userApi.showLoadMore(refs.loadMore);
     }
-    console.log(pages);
-    console.log(cardsApi.page);
+
     if (pages < cardsApi.page) {
       userApi.addInfo(refs.amountInfo);
     }
